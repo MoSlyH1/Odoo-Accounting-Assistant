@@ -8,6 +8,14 @@ Photo / PDF ──► AI reads vendor, lines, VAT, totals ──► you review (
 
 ## What it does
 
+**Vendor payments:**
+- *Bill already paid* (cash sale, PAID stamp, card slip): the AI marks it paid and picks your cash or bank journal. The draft bill carries a note of how it was paid; after you post the bill, the **Payments** tab has it ticked — one click registers the payment through Odoo's own Register Payment and marks the bill paid.
+- *Payment documents* (cheque copy, bank transfer confirmation, سند صرف, signed cash receipt): recorded as **Vendor payment**. Either a draft payment in Odoo, or — if you pick one of the vendor's open posted bills — registered straight on that bill (partial amounts supported).
+- *Payments tab*: every posted bill not fully paid, oldest due first, overdue in red. Tick, choose the journal/date/amount, and register one payment per bill or one per vendor.
+- Safeguards: payments can only be registered on posted bills; duplicate payments (same vendor, amount, date) are caught; once any payment is registered on a bill, its "paid at scan" note is cleared so it can't be paid twice; partly paid bills are never pre-ticked.
+
+**Batch upload:** drop many photos, a multi-page PDF, or a ZIP full of photos/PDFs. For a multi-page PDF you choose *each page is a separate bill* or *all pages are one bill*. Bills are read 2 at a time; blank/cover pages are marked "Not a bill"; **Create N drafts** sends every ready bill to Odoo in one click. If the free AI is busy the bill retries by itself; if the daily free limit is reached the batch pauses and **Resume** continues where it stopped.
+
 - Reads bills in Arabic, English or French, converts Arabic-Indic digits, LBP/USD, Lebanese DD/MM dates.
 - Picks the expense account for each line from **your own chart of accounts** (pulled live from Odoo), and matches the 11% VAT to your purchase tax.
 - Finds the vendor in Odoo by VAT number or name; creates it if missing (configurable).
@@ -29,11 +37,13 @@ Photo / PDF ──► AI reads vendor, lines, VAT, totals ──► you review (
 
 ### The free AI setup
 
-- Default models: `qwen/qwen3.8-27b:free` and `dots-studio/dots-3-note-preview:free` (both read images, both $0). Free listings on OpenRouter change often — if these are ever pulled, `OPENROUTER_AUTO_DISCOVER` finds a replacement automatically.images**. `OPENROUTER_FREE_ONLY=true` guarantees a paid model is never called.
+- Default models: `qwen/qwen3.8-27b:free` and `dots-studio/dots-3-note-preview:free` (both read images, both $0). Free listings on OpenRouter change often — if these are ever pulled, `OPENROUTER_AUTO_DISCOVER` finds a replacement automatically.
+- Free models on OpenRouter are added and retired often. With `OPENROUTER_AUTO_DISCOVER=true`, if your model is down, rate-limited or gone, the app asks OpenRouter for its current list and tries other **$0 models that read images**. `OPENROUTER_FREE_ONLY=true` guarantees a paid model is never called.
 - To pin other models, list them in `OPENROUTER_MODELS` (comma-separated, each ending in `:free`), in the order you want them tried.
 - Scanned PDFs are turned into an image in your browser (first 3 pages), because free vision models read images. The original PDF is still what gets attached in Odoo.
 - If you see "blocks free models with your privacy settings": open https://openrouter.ai/settings/privacy and allow free endpoints.
-- Limits: free models have per-minute and daily request caps set by OpenRouter (check the current numbers on openrouter.ai). The app reads 2 bills at a time to stay under the per-minute cap.
+- Limits: free models have per-minute and daily request caps set by OpenRouter (check the current numbers on openrouter.ai). The app reads 2 bills at a time, retries automatically on the per-minute cap, and pauses the batch on the daily cap.
+- Time: each bill may take up to `AI_TIME_BUDGET_SECONDS` (default 280). Qwen is asked for strict JSON (structured outputs) with medium reasoning, so replies come back clean.
 - Privacy: free providers may log or train on what you send. Don't use it for documents that must stay confidential.
 
 ## 2. Run locally with Docker
@@ -86,6 +96,7 @@ public/                      vanilla JS frontend (app.js, ledger.js for debit/cr
 - Odoo has announced a newer JSON-2 external API for future versions; all Odoo calls live in `src/services/odoo/client.js`, so switching only touches that file.
 - A currency that isn't active in Odoo (e.g. LBP) falls back to the company currency with a warning — activate it under Accounting → Configuration → Currencies.
 - Multi-company: set `ODOO_COMPANY_ID`.
+- Payments use your **bank** and **cash** journals (Settings lets you choose the default for each). Registering goes through `account.payment.register`, exactly like the Register Payment button in Odoo, so reconciliation is handled by Odoo.
 
 ## Troubleshooting
 
@@ -94,4 +105,5 @@ public/                      vanilla JS frontend (app.js, ledger.js for debit/cr
 | `Odoo rejected the login` | Wrong DB name, username (it's your login email) or API key |
 | `Free AI limit reached` | Per-minute or daily free cap; wait and retry |
 | `All free models failed` | The message lists each model's error; pin a working one in `OPENROUTER_MODELS` |
+| `Couldn't read this bill` / `not valid JSON` | The app already retries other free models automatically when one replies with broken JSON — if you still see this, every model tried failed the same way; retake the photo (clearer, less glare) or try again in a minute |
 | Top bar shows "Odoo unreachable" | Hover it for the exact error |

@@ -26,7 +26,25 @@ function accountLabel(id, catalog) {
   return a ? { code: a.code, name: a.name } : { code: '', name: 'Account not chosen' };
 }
 
+// Payment entry: vendor (payable) against the bank/cash journal.
+export function paymentRows(bill, catalog) {
+  const p = bill.payment || {};
+  const amount = round2(p.amount);
+  const journal = (catalog.paymentJournals || []).find((j) => j.id === Number(p.journalId));
+  const payable = catalog.payable || { code: '', name: 'Accounts payable' };
+  const inbound = p.direction === 'inbound';
+  const vendorRow = { code: payable.code, name: payable.name, memo: bill.vendor?.name || 'vendor' };
+  const bankRow = journal
+    ? { code: '', name: `${journal.name}`, memo: journal.type === 'cash' ? 'Cash journal' : 'Bank journal (outstanding payments)' }
+    : { code: '', name: 'Bank or cash journal not chosen', memo: '', missing: true };
+  return finish([
+    { ...vendorRow, debit: inbound ? 0 : amount, credit: inbound ? amount : 0 },
+    { ...bankRow, debit: inbound ? amount : 0, credit: inbound ? 0 : amount },
+  ]);
+}
+
 export function journalRows(bill, catalog) {
+  if (bill.kind === 'payment') return paymentRows(bill, catalog);
   if (bill.kind === 'entry') {
     const rows = bill.entryLines.map((l) => ({ ...accountLabel(l.accountId, catalog), memo: l.description, debit: round2(l.debit), credit: round2(l.credit), missing: !l.accountId }));
     return finish(rows);

@@ -26,6 +26,12 @@ export const config = {
       // Never call a paid model, even if listed in OPENROUTER_MODELS without ':free'.
       freeOnly: bool(process.env.OPENROUTER_FREE_ONLY, true),
       siteUrl: process.env.PUBLIC_URL || 'https://localhost',
+      // Room for the model to think and still write the full JSON.
+      maxTokens: Number(process.env.OPENROUTER_MAX_TOKENS || 16000),
+      // low | medium | high | off — medium gives Qwen time to read carefully.
+      reasoningEffort: (process.env.OPENROUTER_REASONING || 'medium').toLowerCase(),
+      // Total time one bill may take (keep below the host's request limit: Vercel 300 s).
+      timeBudgetMs: Number(process.env.AI_TIME_BUDGET_SECONDS || 280) * 1000,
     },
     gemini: {
       apiKey: process.env.GEMINI_API_KEY || '',

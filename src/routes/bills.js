@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
 import { catalog, findPartners } from '../services/odoo/catalog.js';
 import { createDraft } from '../services/odoo/bills.js';
+import { createPayment } from '../services/odoo/payments.js';
 import { extractBill } from '../services/ai/index.js';
 import * as history from '../db/history.js';
 
@@ -54,13 +55,13 @@ router.post('/extract', upload.single('file'), asyncHandler(async (req, res) => 
 router.post('/', asyncHandler(async (req, res) => {
   const { historyId, ...bill } = req.body || {};
   try {
-    const result = await createDraft(bill);
+    const result = bill.kind === 'payment' ? await createPayment(bill) : await createDraft(bill);
     await history.markDrafted(historyId, {
       submitted: { ...bill, file: bill.file ? { name: bill.file.name, mimeType: bill.file.mimeType } : null },
       moveId: result.moveId,
       url: result.url,
     }).catch(() => {});
-    if (bill.kind !== 'entry') {
+    if (bill.kind === 'bill' || bill.kind === 'refund') {
       await history.rememberVendorAccounts(result.partnerId, bill.lines.map((l) => Number(l.accountId))).catch(() => {});
     }
     res.status(201).json(result);

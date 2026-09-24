@@ -77,8 +77,10 @@ export function normalize(raw, { accounts = [], taxes = [] } = {}) {
     };
   });
 
+  const docTypeRaw = raw.document_type;
+  const isPayment = docTypeRaw === 'payment';
   const total = round2(toNumber(raw.total));
-  if (!lines.length && total) {
+  if (!lines.length && total && !isPayment) {
     lines.push({ description: 'Purchase', quantity: 1, unitPrice: total, taxRate: 0, taxIds: [], accountId: null, accountReason: '' });
   }
 
@@ -90,17 +92,20 @@ export function normalize(raw, { accounts = [], taxes = [] } = {}) {
   const subtotal = round2(lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0));
   const taxTotal = round2(lines.reduce((s, l) => s + l.quantity * l.unitPrice * (l.taxRate / 100), 0));
   const computed = raw.tax_included_in_prices ? subtotal : round2(subtotal + taxTotal);
-  if (total && Math.abs(computed - total) > Math.max(0.05, total * 0.005)) {
+  if (!isPayment && total && Math.abs(computed - total) > Math.max(0.05, total * 0.005)) {
     warnings.push(`Lines add up to ${computed}, but the document total is ${total}. Check quantities and prices.`);
   }
   if (raw.tax_included_in_prices) warnings.push('Prices on the document include VAT — make sure the chosen taxes are "included in price" or adjust the unit prices.');
 
-  const docType = ['bill', 'refund', 'receipt', 'other'].includes(raw.document_type) ? raw.document_type : 'bill';
+  const docType = ['bill', 'refund', 'receipt', 'payment', 'other'].includes(raw.document_type) ? raw.document_type : 'bill';
+  const pay = raw.payment || {};
+  const payStatus = isPayment ? 'paid' : ['paid', 'partial', 'unpaid'].includes(pay.status) ? pay.status : 'unknown';
+  const payAmount = round2(toNumber(pay.amount)) || (isPayment || payStatus === 'paid' ? total : 0);
   const confidence = Math.max(0, Math.min(1, toNumber(raw.confidence)));
   if (confidence && confidence < 0.6) warnings.push('The AI is not confident about this document. Review every field.');
 
   return {
-    kind: docType === 'refund' ? 'refund' : 'bill',
+    kind: docType === 'refund' ? 'refund' : docType === 'payment' ? 'payment' : 'bill',
     documentType: docType,
     language: str(raw.language) || 'en',
     vendor: {
@@ -118,6 +123,12 @@ export function normalize(raw, { accounts = [], taxes = [] } = {}) {
     subtotal: round2(toNumber(raw.subtotal)) || subtotal,
     taxTotal: round2(toNumber(raw.tax_total)) || taxTotal,
     total: total || computed,
+    payment: {
+      status: payStatus,
+      method: ['cash', 'bank_transfer', 'card', 'cheque', 'other'].includes(pay.method) ? pay.method : '',
+      amount: payAmount,
+      reference: digits(pay.reference),
+    },
     confidence,
     notes: str(raw.notes),
     warnings: [...new Set(warnings)],

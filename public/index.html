@@ -30,6 +30,7 @@
       <div class="brand">Bill Agent <span id="odooStatus" class="status" title="Odoo connection">Connecting…</span></div>
       <nav class="tabs" aria-label="Views">
         <button class="tab" data-view="scan" aria-current="page">Scan</button>
+        <button class="tab" data-view="payments">Payments</button>
         <button class="tab" data-view="history">History</button>
       </nav>
       <button class="btn ghost" id="settingsBtn" type="button">Settings</button>
@@ -39,16 +40,18 @@
       <section class="intake" aria-label="Bills in this batch">
         <div class="drop" id="drop">
           <p class="drop-title">Drop bills here</p>
-          <p class="drop-sub">Photos or scanned PDFs, Arabic or English. Up to 4 MB each.</p>
+          <p class="drop-sub">Photos, scanned PDFs, or a ZIP full of bills — Arabic or English. Many at once is fine.</p>
           <div class="drop-actions">
             <label class="btn primary">Take photo
               <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
             </label>
             <label class="btn">Choose files
-              <input id="fileInput" type="file" accept="image/*,application/pdf" multiple hidden>
+              <input id="fileInput" type="file" accept="image/*,application/pdf,.pdf,.zip,application/zip,application/x-zip-compressed" multiple hidden>
             </label>
           </div>
         </div>
+        <p class="intake-note" id="intakeNote" role="status" hidden></p>
+        <div class="batch" id="batch" hidden></div>
         <ul class="queue" id="queue"></ul>
       </section>
 
@@ -58,6 +61,32 @@
           <p>Add a bill on the left. The vendor, lines, VAT and accounts are filled in for you, and the debit and credit sides are shown before anything reaches Odoo.</p>
         </div>
       </section>
+    </main>
+
+    <main id="view-payments" class="payments" hidden>
+      <div class="pay-head">
+        <div>
+          <h2>Vendor payments</h2>
+          <p class="muted">Posted bills that are not fully paid yet, oldest due first. Bills scanned as “already paid” are ticked for you.</p>
+        </div>
+        <div class="pay-tools">
+          <input id="paySearch" type="search" placeholder="Search vendor or reference" aria-label="Search vendor or reference">
+          <button class="btn" id="payRefresh" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="pay-bulk">
+        <span>For ticked bills:</span>
+        <select id="payAllJournal" aria-label="Pay from"></select>
+        <input id="payAllDate" type="date" aria-label="Payment date">
+        <button class="btn small" id="payApplyAll" type="button">Apply</button>
+        <label class="check inline"><input type="checkbox" id="payGroup"> One payment per vendor</label>
+      </div>
+      <div class="pay-list" id="payList"></div>
+      <div class="pay-footer">
+        <span id="paySummary" class="muted"></span>
+        <button class="btn primary big" id="payRegister" type="button" disabled>Register payments</button>
+      </div>
+      <p class="intake-note" id="payNote" role="status" hidden></p>
     </main>
 
     <main id="view-history" class="history" hidden>
@@ -72,11 +101,27 @@
         <select id="setBillJournal"></select>
         <label for="setEntryJournal">Journal for journal entries</label>
         <select id="setEntryJournal"></select>
+        <label for="setCashJournal">Journal for cash payments</label>
+        <select id="setCashJournal"></select>
+        <label for="setBankJournal">Journal for bank, card and cheque payments</label>
+        <select id="setBankJournal"></select>
         <label class="check"><input type="checkbox" id="setAuto"> Create the draft automatically when nothing needs checking</label>
         <div class="settings-actions">
           <button class="btn" type="button" id="refreshCatalog">Reload accounts from Odoo</button>
           <button class="btn" type="button" id="logoutBtn">Sign out</button>
           <button class="btn primary" value="close">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="pdfMode">
+      <form method="dialog" class="settings">
+        <h2>How are the bills arranged?</h2>
+        <p id="pdfModeText" class="muted"></p>
+        <div class="choice">
+          <button class="btn primary big" value="split">Each page is a separate bill</button>
+          <button class="btn big" value="whole">All pages are one bill</button>
+          <button class="btn ghost" value="cancel">Cancel</button>
         </div>
       </form>
     </dialog>

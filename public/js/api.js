@@ -33,4 +33,6 @@ export const api = {
   },
   createDraft: (payload) => request('/bills', { method: 'POST', body: payload }),
   history: () => request('/bills/history'),
+  openBills: (q = '', partnerId = '') => request(`/payments/bills?q=${encodeURIComponent(q)}${partnerId ? `&partnerId=${partnerId}` : ''}`),
+  registerPayments: (body) => request('/payments/register', { method: 'POST', body }),
 };

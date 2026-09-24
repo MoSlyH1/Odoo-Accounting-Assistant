@@ -7,6 +7,7 @@ import { requireAuth } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import odooRoutes from './routes/odoo.js';
 import billRoutes from './routes/bills.js';
+import paymentRoutes from './routes/payments.js';
 
 const app = express();
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,6 +30,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/odoo', requireAuth, odooRoutes);
 app.use('/api/bills', requireAuth, billRoutes);
+app.use('/api/payments', requireAuth, paymentRoutes);
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Unknown API route.' }));
 

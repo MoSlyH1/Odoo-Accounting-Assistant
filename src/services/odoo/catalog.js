@@ -46,6 +46,13 @@ export function journals() {
   });
 }
 
+export function paymentJournals() {
+  return cached('paymentJournals', async () => {
+    const rows = await searchRead('account.journal', [['type', 'in', ['bank', 'cash']]], ['id', 'name', 'code', 'type', 'currency_id']);
+    return rows.map((j) => ({ id: j.id, name: j.name, code: j.code, type: j.type, currency: j.currency_id?.[1] || '' }));
+  });
+}
+
 export function currencies() {
   return cached('currencies', async () => {
     const rows = await searchRead('res.currency', [], ['id', 'name', 'symbol']);
@@ -82,10 +89,10 @@ export function payableAccount() {
 }
 
 export async function catalog() {
-  const [acc, taxes, jr, cur, comp, payable] = await Promise.all([
-    accounts(), purchaseTaxes(), journals(), currencies(), company(), payableAccount(),
+  const [acc, taxes, jr, cur, comp, payable, payJournals] = await Promise.all([
+    accounts(), purchaseTaxes(), journals(), currencies(), company(), payableAccount(), paymentJournals(),
   ]);
-  return { accounts: acc, taxes, journals: jr, currencies: cur, company: comp, payable };
+  return { accounts: acc, taxes, journals: jr, paymentJournals: payJournals, currencies: cur, company: comp, payable };
 }
 
 export { call };
