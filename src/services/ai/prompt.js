@@ -1,11 +1,14 @@
 export function buildPrompt({ accounts = [], taxes = [], companyCurrency }) {
-  const accountList = accounts.slice(0, 400).map((a) => `${a.id}|${a.code}|${a.name}`).join('\n');
+  // Keep the prompt lean — long lists push small free models to ramble or truncate their reply.
+  const accountList = accounts.slice(0, 150).map((a) => `${a.id}|${a.code}|${a.name}`).join('\n');
   const taxList = taxes.map((t) => `${t.id}|${t.name}|${t.amount}${t.amountType === 'percent' ? '%' : ''}`).join('\n');
 
   return `You are an accounting assistant reading a scanned supplier document for a company in Lebanon.
 The document may be in Arabic, English, French, or a mix. Read it carefully, including handwriting and stamps.
 
-Return ONLY a JSON object with exactly this shape:
+Respond with the JSON object ONLY. No reasoning, no explanation, no markdown code fences, nothing before the opening "{" or after the closing "}". Keep "account_reason" and "notes" short so the reply stays compact. Start your reply directly with "{".
+
+The JSON object has exactly this shape:
 {
   "document_type": "bill" | "refund" | "receipt" | "other",
   "language": "ar" | "en" | "fr" | "mixed",
@@ -36,7 +39,7 @@ Rules:
 - tax_rate: VAT percent for the line (Lebanon standard VAT is 11). 0 if no tax.
 - document_type "refund" only for credit notes / returns (إشعار دائن / مرتجع).
 - account_id: choose the single best expense or asset account from this list (format id|code|name). Use the id number. account_reason: under 10 words.
-${accountList || '(no accounts available — use 0)'}
+${accountList || '(no accounts available — use 0)'}${accounts.length > 150 ? `\n(${accounts.length - 150} more accounts exist but aren't shown — use 0 if nothing above fits)` : ''}
 - Purchase taxes available (id|name|rate), for your reference:
 ${taxList || '(none)'}
 - confidence: 0 to 1, how sure you are about the totals and vendor.

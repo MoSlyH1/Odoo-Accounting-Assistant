@@ -16,11 +16,46 @@ const str = (v) => (v == null ? '' : String(v).trim());
 const digits = (v) => str(v).replace(/[٠-٩۰-۹]/g, (d) => AR_DIGITS[d]);
 const isoDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(digits(v)) ? digits(v) : '');
 
+// Balanced-brace substring starting at `from` (ignoring braces inside strings), or null if
+// the text runs out before the object closes (a truncated reply).
+function balancedObjectAt(text, from) {
+  let depth = 0, inString = false, escaped = false;
+  for (let i = from; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+    else if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return text.slice(from, i + 1);
+    }
+  }
+  return null;
+}
+
+// Pulls the JSON object out of a model reply that may also contain chain-of-thought,
+// markdown fences, or trailing commentary. A model sometimes uses "{" in plain prose
+// before the real object (quoting the document, emphasis), so this tries every "{" in
+// turn and keeps the first one that actually parses, rather than trusting the first brace.
 export function parseModelJson(text) {
-  const clean = String(text).replace(/```json|```/g, '').trim();
-  const start = clean.indexOf('{');
-  const end = clean.lastIndexOf('}');
-  return JSON.parse(start >= 0 ? clean.slice(start, end + 1) : clean);
+  const clean = String(text)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/```json|```/gi, '')
+    .trim();
+  let sawTruncated = false;
+  for (let i = clean.indexOf('{'); i !== -1; i = clean.indexOf('{', i + 1)) {
+    const candidate = balancedObjectAt(clean, i);
+    if (candidate == null) { sawTruncated = true; continue; }
+    try {
+      return JSON.parse(candidate);
+    } catch { /* not this one — keep scanning */ }
+  }
+  throw new Error(sawTruncated ? 'truncated' : 'no valid JSON object found');
 }
 
 export function normalize(raw, { accounts = [], taxes = [] } = {}) {

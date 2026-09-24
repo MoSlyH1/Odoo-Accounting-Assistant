@@ -2,6 +2,7 @@
 // free image-capable model OpenRouter currently lists, so a retired free model doesn't break scanning.
 import { config } from '../../config.js';
 import { AppError } from '../../utils/errors.js';
+import { parseModelJson } from './normalize.js';
 
 const API = 'https://openrouter.ai/api/v1';
 const DEADLINE_MS = 55_000; // stay inside Vercel's 60 s function limit
@@ -52,7 +53,7 @@ export async function extractWithOpenRouter({ base64, mimeType, prompt }) {
         body: JSON.stringify({
           model,
           temperature: 0.1,
-          max_tokens: 4000,
+          max_tokens: 6000,
           messages: [{
             role: 'user',
             content: [
@@ -73,10 +74,18 @@ export async function extractWithOpenRouter({ base64, mimeType, prompt }) {
     try { data = JSON.parse(body); } catch { /* not JSON */ }
 
     if (res.ok && !data?.error) {
-      const text = data?.choices?.[0]?.message?.content || '';
-      if (text.includes('{')) return { text, model };
-      errors.push(`${model}: empty answer`);
-      continue;
+      const choice = data?.choices?.[0];
+      const text = choice?.message?.content || '';
+      if (!text.trim()) { errors.push(`${model}: empty answer`); continue; }
+      // Verify the reply actually contains a well-formed JSON object before trusting this
+      // model — reasoning models sometimes wrap it in commentary or get cut off mid-object.
+      try {
+        parseModelJson(text);
+        return { text, model };
+      } catch {
+        errors.push(`${model}: ${choice?.finish_reason === 'length' ? 'reply was cut off before the JSON closed' : 'reply was not valid JSON'}`);
+        continue;
+      }
     }
 
     const msg = data?.error?.message || body.slice(0, 200);
