@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eef3ec">
+  <title>Bill Agent · Odoo</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Sign in -->
+  <section id="login" class="login" hidden>
+    <form id="loginForm" class="login-card">
+      <h1>Bill Agent</h1>
+      <p>Scan supplier bills and send them to Odoo as drafts.</p>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p class="form-error" id="loginError" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand">Bill Agent <span id="odooStatus" class="status" title="Odoo connection">Connecting…</span></div>
+      <nav class="tabs" aria-label="Views">
+        <button class="tab" data-view="scan" aria-current="page">Scan</button>
+        <button class="tab" data-view="history">History</button>
+      </nav>
+      <button class="btn ghost" id="settingsBtn" type="button">Settings</button>
+    </header>
+
+    <main id="view-scan" class="scan">
+      <section class="intake" aria-label="Bills in this batch">
+        <div class="drop" id="drop">
+          <p class="drop-title">Drop bills here</p>
+          <p class="drop-sub">Photos or scanned PDFs, Arabic or English. Up to 4 MB each.</p>
+          <div class="drop-actions">
+            <label class="btn primary">Take photo
+              <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+            </label>
+            <label class="btn">Choose files
+              <input id="fileInput" type="file" accept="image/*,application/pdf" multiple hidden>
+            </label>
+          </div>
+        </div>
+        <ul class="queue" id="queue"></ul>
+      </section>
+
+      <section class="review" id="review" aria-live="polite">
+        <div class="empty">
+          <h2>Nothing to review yet</h2>
+          <p>Add a bill on the left. The vendor, lines, VAT and accounts are filled in for you, and the debit and credit sides are shown before anything reaches Odoo.</p>
+        </div>
+      </section>
+    </main>
+
+    <main id="view-history" class="history" hidden>
+      <h2>Recent drafts</h2>
+      <div id="historyList"></div>
+    </main>
+
+    <dialog id="settings">
+      <form method="dialog" class="settings">
+        <h2>Settings</h2>
+        <label for="setBillJournal">Journal for vendor bills</label>
+        <select id="setBillJournal"></select>
+        <label for="setEntryJournal">Journal for journal entries</label>
+        <select id="setEntryJournal"></select>
+        <label class="check"><input type="checkbox" id="setAuto"> Create the draft automatically when nothing needs checking</label>
+        <div class="settings-actions">
+          <button class="btn" type="button" id="refreshCatalog">Reload accounts from Odoo</button>
+          <button class="btn" type="button" id="logoutBtn">Sign out</button>
+          <button class="btn primary" value="close">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="zoom" class="zoom"><form method="dialog"><button class="btn ghost zoom-close">Close</button></form><div id="zoomBody"></div></dialog>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
