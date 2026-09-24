@@ -29,8 +29,7 @@ Photo / PDF ──► AI reads vendor, lines, VAT, totals ──► you review (
 
 ### The free AI setup
 
-- Default model: `inclusionai/ling-3.0-flash-vl:free` (reads images, $0).
-- Free models on OpenRouter are added and retired often. With `OPENROUTER_AUTO_DISCOVER=true`, if your model is down, rate-limited or gone, the app asks OpenRouter for its current list and tries other **$0 models that read images**. `OPENROUTER_FREE_ONLY=true` guarantees a paid model is never called.
+- Default models: `qwen/qwen3.8-27b:free` and `dots-studio/dots-3-note-preview:free` (both read images, both $0). Free listings on OpenRouter change often — if these are ever pulled, `OPENROUTER_AUTO_DISCOVER` finds a replacement automatically.images**. `OPENROUTER_FREE_ONLY=true` guarantees a paid model is never called.
 - To pin other models, list them in `OPENROUTER_MODELS` (comma-separated, each ending in `:free`), in the order you want them tried.
 - Scanned PDFs are turned into an image in your browser (first 3 pages), because free vision models read images. The original PDF is still what gets attached in Odoo.
 - If you see "blocks free models with your privacy settings": open https://openrouter.ai/settings/privacy and allow free endpoints.

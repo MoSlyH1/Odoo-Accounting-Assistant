@@ -20,7 +20,7 @@ export const config = {
     provider: (process.env.AI_PROVIDER || 'openrouter').toLowerCase(),
     openrouter: {
       apiKey: process.env.OPENROUTER_API_KEY || '',
-      models: list(process.env.OPENROUTER_MODELS, ['inclusionai/ling-3.0-flash-vl:free']),
+      models: list(process.env.OPENROUTER_MODELS, ['qwen/qwen3.8-27b:free', 'dots-studio/dots-3-note-preview:free']),
       // When your models are unavailable, fall back to any other $0 image model OpenRouter lists.
       autoDiscover: bool(process.env.OPENROUTER_AUTO_DISCOVER, true),
       // Never call a paid model, even if listed in OPENROUTER_MODELS without ':free'.

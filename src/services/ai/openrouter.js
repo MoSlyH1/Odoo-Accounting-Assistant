@@ -10,13 +10,16 @@ let discovered = { at: 0, ids: [] };
 
 const isFree = (m) => m.id.endsWith(':free') || (Number(m.pricing?.prompt) === 0 && Number(m.pricing?.completion) === 0);
 const readsImages = (m) => (m.architecture?.input_modalities || []).includes('image') || /image/.test(m.architecture?.modality || '');
+// Must actually reply with text — some free $0 models output audio or images instead (e.g. music
+// generators), which would never produce the JSON we need even though they accept an image input.
+const producesText = (m) => (m.architecture?.output_modalities || []).includes('text');
 
 export async function freeVisionModels() {
   if (discovered.at > Date.now() - 60 * 60 * 1000 && discovered.ids.length) return discovered.ids;
   try {
     const res = await fetch(`${API}/models`, { signal: AbortSignal.timeout(8_000) });
     const { data = [] } = await res.json();
-    const ids = data.filter((m) => isFree(m) && readsImages(m)).sort((a, b) => (b.context_length || 0) - (a.context_length || 0)).map((m) => m.id);
+    const ids = data.filter((m) => isFree(m) && readsImages(m) && producesText(m)).sort((a, b) => (b.context_length || 0) - (a.context_length || 0)).map((m) => m.id);
     discovered = { at: Date.now(), ids };
   } catch { /* keep configured models only */ }
   return discovered.ids;
@@ -37,7 +40,7 @@ export async function extractWithOpenRouter({ base64, mimeType, prompt }) {
   if (!models.length) throw new AppError('No free vision model is available on OpenRouter right now. Set OPENROUTER_MODELS.', 503);
 
   const errors = [];
-  for (const model of models.slice(0, 5)) {
+  for (const model of models.slice(0, 8)) {
     const remaining = DEADLINE_MS - (Date.now() - started);
     if (remaining < 8_000) break;
     let res;
